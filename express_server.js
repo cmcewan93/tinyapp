@@ -26,13 +26,13 @@ const users = {
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect("/urls");
 });
 
 app.get("/urls", (req, res) => {
   let templateVars = {
     urls: urlDatabase,
-    user: user[req.cookies.user_id]
+    user: users[req.cookies.user_id]
   };
   res.render("urls_index", templateVars);
 });
@@ -41,28 +41,46 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+app.get("/login", (req, res) => {
+  let templateVars = {
+    user: users[req.cookies.user_id],
+  };
+  res.render("urls_login", templateVars);
+})
+
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username);
+  let uID = emailLookup(req.body.email, users);
+
+  if(uID.length <= 0) {
+    res.status(403).send('Cannot find that email in our system!');
+  } else if (req.body.password !== users[uID].password) {
+    res.status(403).send('Password is incorrect!');
+  } else {
+    console.log('logged in');
+    res.cookie("user_id", uID);
+  }
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("username", {path: '/'});
+  res.clearCookie("user_id", {path: '/'});
   res.redirect("/urls");
 });
 
 app.get("/register", (req, res) => {
   let templateVars = {
-    username: req.cookies.username
+    user: users[req.cookies.user_id],
   };
   res.render("urls_register", templateVars);
 });
 
 app.post("/register", (req, res) => {
   let uId  = generateRandomString();
+  let emailId = emailLookup(req.body.email, users);
+
   if (req.body.email === '' || req.body.password === '') {
     res.status(400).send('Empty username and password');
-  } else if (emailLookup(req.body.email, users)) {
+  } else if (emailId.length > 0) {
     res.status(400).send('Email already exists');
   } else {
     users[uId] = {
@@ -83,7 +101,7 @@ app.post("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   let templateVars = {
-    username: req.cookies.username
+    user: users[req.cookies.user_id]
   };
   res.render("urls_new", templateVars);
 });
@@ -92,7 +110,7 @@ app.get("/urls/:shortURL", (req, res) => {
   let templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL],
-    user: r
+    user: users[req.cookies.user_id]
   };
   res.render("urls_show", templateVars);
 });
@@ -138,8 +156,8 @@ function generateRandomString() {
 function emailLookup(email, users) {
   for(user in users) {
     if(users[user].email === email) {
-      return true
+      return users[user].id;
     } 
   }
-  return false;
+  return '';
 }

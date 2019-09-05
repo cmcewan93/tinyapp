@@ -34,7 +34,7 @@ app.get("/urls", (req, res) => {
     urls: urlDatabase[req.cookies.userID],
     user: users[req.cookies.user_id]
   };
-  
+
   if (users[req.cookies.user_id]) {
     templateVars.urls = urlsForUser(req.cookies.user_id);
     res.render("urls_index", templateVars);
@@ -126,24 +126,29 @@ app.get("/urls/:shortURL", (req, res) => {
     longURL: urlDatabase[req.params.shortURL].longURL,
     user: users[req.cookies.user_id]
   };
-  if (users[req.cookies.user_id]) {
     res.render("urls_show", templateVars);
-  } else {
-    res.redirect("/login");
-  }
+  
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect("/urls");
+  if (req.cookies.user_id === urlDatabase[req.params.shortURL].userID) {
+    delete urlDatabase[req.params.shortURL];
+    res.redirect("/urls");
+  } else {
+    res.send(403);
+  }
 });
 
 app.post("/urls/:shortURL", (req, res) => {
-  urlDatabase[req.params.shortURL] = {
+  if (req.cookies.user_id === urlDatabase[req.params.shortURL].userID) {
+    urlDatabase[req.params.shortURL] = {
     longURL: req.body.longURL,
     userID: req.cookies.user_id
   };
   res.redirect(`/urls`);
+} else {
+  res.send(403);
+}
 });
 
 app.get("/hello", (req, res) => {

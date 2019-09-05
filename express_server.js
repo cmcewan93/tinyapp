@@ -1,4 +1,5 @@
 const express = require("express");
+const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
@@ -60,12 +61,13 @@ app.post("/login", (req, res) => {
 
   if (uID.length <= 0) {
     res.status(403).send('Cannot find that email in our system!');
-  } else if (req.body.password !== users[uID].password) {
+  } else if (!bcrypt.compareSync(req.body.password, users[uID].password)) { 
     res.status(403).send('Password is incorrect!');
   } else {
     res.cookie("user_id", uID);
+    res.redirect("/urls");
   }
-  res.redirect("/urls");
+  
 });
 
 app.post("/logout", (req, res) => {
@@ -89,10 +91,12 @@ app.post("/register", (req, res) => {
   } else if (emailId.length > 0) {
     res.status(400).send('Email already exists');
   } else {
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+    //console.log(hashedPassword);
     users[uId] = {
       id: `${uId}`,
       email: req.body.email,
-      password: req.body.password
+      password: hashedPassword
     };
     res.cookie("user_id", uId);
   }

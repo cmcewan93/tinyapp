@@ -8,12 +8,19 @@
 </head>
 
 <body>
+  
   <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
+        <%if (!user) { %>
+            <div class="alert alert-warning" role="alert">
+                You must login to edit a link!
+            </div>
+            <% } %>
         <h5 class="card-title">TinyURL for: <%= longURL %></h5>
         <p class="card-text">Short URL: <a href="/u/<%= shortURL %>"><%= shortURL %></a></p>
       </div>
+    <%if (user) { %>
     <div class="card-footer text-muted">
       <h3>Edit</h3>
       <form action="/urls/<%= shortURL %>" method="POST" >
@@ -25,6 +32,7 @@
         </input>
       </form>
     </div>
+    <% } %>
   </div>
   <!-- Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>

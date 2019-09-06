@@ -12,7 +12,7 @@
   <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
-        <%if (!user) { %>
+        <%if (!user || user.id !== owner) { %>
             <div class="alert alert-warning" role="alert">
                 You must login to edit a link!
             </div>
@@ -20,15 +20,15 @@
         <h5 class="card-title">TinyURL for: <%= longURL %></h5>
         <p class="card-text">Short URL: <a href="/u/<%= shortURL %>"><%= shortURL %></a></p>
       </div>
-    <%if (user) { %>
+    <% if (user !== undefined && user.id === owner) { %>
     <div class="card-footer text-muted">
       <h3>Edit</h3>
       <form action="/urls/<%= shortURL %>" method="POST" >
         <div>
         New URL:
         </div>
-        <input class="form-control" type="text" name="longURL" placeholder="http://" style= "margin: 1em auto; width: 300px;"> 
-          <button type="submit" class="btn btn-primary">Submit</button> 
+        <input class="form-control" type="text" name="longURL" placeholder="<%= longURL %>" style= "margin: 1em auto; width: 300px;"> 
+          <button type="submit" class="btn btn-primary">Update</button> 
         </input>
       </form>
     </div>

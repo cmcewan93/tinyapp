@@ -1,5 +1,6 @@
 const express = require("express");
 const bcrypt = require('bcrypt');
+const helpers = require('./helpers');
 const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
@@ -9,7 +10,7 @@ const cookieSession = require('cookie-session');
 app.use(cookieSession({
   name: 'session',
   keys: ['id']
-}))
+}));
 
 
 
@@ -62,14 +63,14 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  let uID = emailLookup(req.body.email, users);
-
-  if (uID.length <= 0) {
+  let uID = helpers.getUserByEmail(req.body.email, users);
+  //console.log(uID);
+  if (uID === undefined) {
     res.status(403).send('Cannot find that email in our system!');
-  } else if (!bcrypt.compareSync(req.body.password, users[uID].password)) { 
+  } else if (!bcrypt.compareSync(req.body.password, uID.password)) {
     res.status(403).send('Password is incorrect!');
   } else {
-    req.session.user_id = uID;
+    req.session.user_id = uID.id;
     res.redirect("/urls");
   }
 
@@ -84,32 +85,36 @@ app.get("/register", (req, res) => {
   let templateVars = {
     user: users[req.session.user_id],
   };
+  if(req.session.user_id) {
+    res.redirect("/urls")
+  } else {
   res.render("urls_register", templateVars);
+  }
 });
 
 app.post("/register", (req, res) => {
-  let uId  = generateRandomString();
-  let emailId = emailLookup(req.body.email, users);
+  let uId  = helpers.generateRandomString();
+  let emailId = helpers.getUserByEmail(req.body.email, users);
 
   if (req.body.email === '' || req.body.password === '') {
     res.status(400).send('Empty username and password');
-  } else if (emailId.length > 0) {
+  } else if (emailId) {
     res.status(400).send('Email already exists');
   } else {
     const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-    //console.log(hashedPassword);
+    
     users[uId] = {
       id: `${uId}`,
       email: req.body.email,
       password: hashedPassword
     };
     req.session.user_id = uId;
+    res.redirect("/urls");
   }
-  res.redirect("/urls");
 });
 
 app.post("/urls", (req, res) => {
-  let tinyUrl = generateRandomString();
+  let tinyUrl = helpers.generateRandomString();
   urlDatabase[tinyUrl] = {
     longURL : req.body.longURL,
     userID : req.session.user_id
@@ -130,12 +135,18 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = {
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL].longURL,
-    user: users[req.session.user_id]
-  };
+  if (urlDatabase[req.params.shortURL] === undefined) {
+    res.send(403, 'Not found');
+  } else {
+    //console.log(users[req.session.user_id].id + ' vs '+urlDatabase[req.params.shortURL].userID)
+    let templateVars = {
+      shortURL: req.params.shortURL,
+      longURL: urlDatabase[req.params.shortURL].longURL,
+      owner: urlDatabase[req.params.shortURL].userID,
+      user: users[req.session.user_id]
+    };
     res.render("urls_show", templateVars);
+  }
   
 });
 
@@ -151,13 +162,13 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   if (req.session.user_id === urlDatabase[req.params.shortURL].userID) {
     urlDatabase[req.params.shortURL] = {
-    longURL: req.body.longURL,
-    userID: req.session.user_id
-  };
-  res.redirect(`/urls`);
-} else {
-  res.send(403);
-}
+      longURL: req.body.longURL,
+      userID: req.session.user_id
+    };
+    res.redirect(`/urls`);
+  } else {
+    res.send(403);
+  }
 });
 
 app.get("/hello", (req, res) => {
@@ -169,33 +180,13 @@ app.get("/u/:shortURL", (req, res) => {
   if (longURL) {
     res.redirect(longURL);
   } else {
-    res.send(404);
+    res.send(404, 'Page does not exist');
   }
 });
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
-function generateRandomString() {
-  let result = '';
-  let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let charLength = chars.length;
-
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * charLength));
-  }
-  return result;
-}
-
-function emailLookup(email, users) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user].id;
-    }
-  }
-  return '';
-}
 
 function urlsForUser(id) {
   let filteredUrls = {};
@@ -206,4 +197,6 @@ function urlsForUser(id) {
   }
   return filteredUrls;
 }
+
+
 

@@ -64,7 +64,6 @@ app.get("/login", (req, res) => {
 
 app.post("/login", (req, res) => {
   let uID = helpers.getUserByEmail(req.body.email, users);
-  //console.log(uID);
   if (uID === undefined) {
     res.status(403).send('Cannot find that email in our system!');
   } else if (!bcrypt.compareSync(req.body.password, uID.password)) {
@@ -138,7 +137,6 @@ app.get("/urls/:shortURL", (req, res) => {
   if (urlDatabase[req.params.shortURL] === undefined) {
     res.send(403, 'Not found');
   } else {
-    //console.log(users[req.session.user_id].id + ' vs '+urlDatabase[req.params.shortURL].userID)
     let templateVars = {
       shortURL: req.params.shortURL,
       longURL: urlDatabase[req.params.shortURL].longURL,
@@ -185,7 +183,7 @@ app.get("/u/:shortURL", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`Tiny app listening on port ${PORT}!`);
 });
 
 function urlsForUser(id) {
